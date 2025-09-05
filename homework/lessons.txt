@@ -1,0 +1,12 @@
+Module 1: Learned about math expressions, variables, and vectors
+Module 2: Learned about directories and file paths
+Module 3: Learned how to sequence numbers in a number of ways
+Module 4: Learned a more in depth ways to use vectors
+Module 5: Learned about missing values, where and how to find them, what they mean
+Module 6: Learned more ways to set up, check, and subset vectors
+Module 7: Learned how to make and use matrixes
+Module 8: Learned about logic functions, when, where, and how to use them
+Module 9: Learned how to make and use functions
+Module 10: Learned a lot about lapply and slapply, how to use, what they do, etc.
+Module 11: Learned all about vapply and tapply and how they relate to the last module
+Module 12: Learned some first steps on data analysis and seeing what data looks like
