@@ -1,0 +1,12 @@
+---
+title: "CH6_XL"
+author: "Xiaoying Li"
+date: "2025-10-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+XL: Good job! FYI, Question #6 and #7 should use `senator_co` not `wildfire` dataset.
