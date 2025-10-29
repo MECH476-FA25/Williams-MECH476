@@ -1,0 +1,128 @@
+---
+title: 'MECH481A6: Engineering Data Analysis in R'
+subtitle: 'Chapter 8 Homework: Functional Programming' 
+author: 'Tyson Williams'
+date: '`r format(Sys.time(), "%d %B, %Y")`'
+output: html_document
+---
+
+```{r global-options, include=TRUE}
+# set global options for figures, code, warnings, and messages
+knitr::opts_chunk$set(fig.width=6, fig.height=4, fig.path="../figs/",
+                      echo=FALSE, warning=FALSE, message=FALSE)
+```
+
+# Load packages
+
+```{r load-packages, message=FALSE}
+# load packages for current session
+library(tidyverse) 
+library(lubridate)
+library(gridExtra) # needed for extra credit question
+```
+
+# Chapter 8 Homework
+
+This homework will give you practice at writing functions, mapping functions, and cleaning/plotting data.
+
+When a question asks you to make a plot, remember to set a theme, title, subtitle, labels, colors, etc. It is up to you how to personalize your plots, but put in some effort and make the plotting approach consistent throughout the document. For example, you could use the same theme for all plots. I also like to use the subtitle as a place for the main summary for the viewer.
+
+\newpage
+
+## Question 1
+
+Write a **function** named `sort_abs()`that takes a vector of numbers as input, calculates the absolute values of each entry, and then outputs that vector sorted from smallest to largest value.
+
+```{r sort-baseR, include=FALSE}
+
+#create a function named `sort_abs()`
+sort_abs <- function(x) {
+  x %>%
+    abs() %>%    
+    sort()       
+}
+
+```
+
+## Question 2
+
+Modify the function `import.w.name()` to import the “date” part of the filename (in addition to the sensor ID). Create a new column variable called “date_created” with this information. Hint: you will need to apply a regex pattern like this: `"(?<=_)[:alnum:]+(?=\\.)"`
+
+```{r import.w.name2, include=FALSE}
+# create an object that tracks the file names and file paths
+# see the coursebook for details
+# modify the import.w.name function
+# hint: start with what is provided in the coursebook
+
+import.w.name <- function(filename) {
+  
+  
+  sensor_id_val <- str_extract(filename, "PA[:digit:]{3}")
+  
+  
+  date_val <- str_extract(filename, "(?<=_)[:alnum:]+(?=\\.)")
+  
+  
+  read_csv(filename, show_col_types = FALSE) %>%
+    mutate(
+      sensor_id = sensor_id_val,
+      date_created = date_val
+    )
+}
+
+```
+
+## Question 3
+
+This question is designed to give you practice at data cleaning. First, create a pipeline that (1) uses `purrr::map_dfr()` and `import.w.name()` to read in all the the PurpleAir data files into a single data frame. Call that new data frame `PA_data_merged`. (2) Then, have the pipeline convert the character vector UTCDateTime into new column of class POSIXct using a `lubridate::` function (note - not all the indices in UTCDateTime will parse correctly; we will address this in Question 4). Finally, (3) finish the pipeline by renaming the `current_temp_f` and `current_humidity` column names to shorter names.
+
+```{r map-dplyr-pipe, warning=FALSE, message=FALSE, include=FALSE}
+# the map code is provided in the coursebook
+PA_data_merged <- list.files(pattern = "^PA.*\\.csv$") %>%
+  map_dfr(import.w.name) %>%
+  mutate(UTCDateTime = ymd_hms(UTCDateTime)) %>%
+  rename(temp_f = current_temp_f,
+         humid = current_humidity)
+
+```
+
+## Question 4
+
+Can you find the 3 indices of UTCDateTime in PA_data_merged that failed to parse with lubridate::? Hint: use the `is.na()` function nested wihtin `which()` to return the row numbers in question. Both of these are baseR functions. Once you have the row entries identified you can `View()` them with a call to `slice()`.: normal entries in UTCDateTime are all the same number of characters nchar() or entries that failed to parse in the new date column will have NA associated with them.
+
+```{r find-NAs, include=FALSE}
+
+na_indices <- which(is.na(PA_data_merged$UTCDateTime))
+
+
+print("Row indices that failed to parse:")
+print(na_indices)
+
+
+print("Data from the rows that failed to parse:")
+problem_rows <- PA_data_merged %>%
+  slice(na_indices)
+
+print(problem_rows)
+```
+
+## Question 5
+
+Create a series of EDA plots (cdf, boxplot, histogram, time series) of the `pm2_5_atm` variable from `PA_data_merged`. Use `color =` or `fill =` as an aesthetic to differentiate each sensor by `sensor_ID`. Do the data have a central tendency? Do they appear normally distributed? Do events show up in the time series? Note: the variable `pm2_5_atm` is the concentration of fine particulate matter air pollution in micrograms per cubic meter ($\mu g/m^3$).
+
+Q: Do the data have a central tendency? A: Yes. Based on the boxplot and histogram, the data are strongly right-skewed, but the central tendency (median, as seen in the boxplot) appears to be low, likely between 5 and 10 µg/m³.
+
+Q: Do they appear normally distributed? A: No, not at all. The histogram and CDF clearly show the data is heavily right-skewed, with a long tail of high-value outliers. A normal distribution would be symmetrical (bell-shaped).
+
+Q: Do events show up in the time series? A: Yes. The time series plot shows a relatively flat baseline with several distinct "spikes" or "events" where the PM2.5 concentration jumps to a very high level (e.g., \> 10 µg/m³) for a short period. (Note: With only one file, we only see one sensor's data, but the code is set up to show multiple).
+
+### Extra Credit
+
+Create the EDA figures within a single plot (hint: use the `gridExtra::` package). Show only one legend and place it within the body of the CDF plot (hint: to move or remove a legend, add a call that uses a version of `theme(legend.position = ...)`).
+
+```{r PA-EDA-plots, message=FALSE, warning=FALSE, include=FALSE}
+#No attempt
+
+```
+
+# XL: Check course book Chapter 7, "7.5.5.2 Multivariate EDA options", you will know how to make this plot.
