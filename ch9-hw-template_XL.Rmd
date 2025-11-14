@@ -1,0 +1,132 @@
+---
+title: 'MECH481A6: Engineering Data Analysis in R'
+subtitle: 'Chapter 9 Homework: Transformations'
+author: "Tyson Williams"
+date: '`r format(Sys.time(), "%d %B, %Y")`'
+output: html_document
+---
+
+```{r global-options, include=FALSE}
+# set global options for figures, code, warnings, and messages
+knitr::opts_chunk$set(fig.width=6, fig.height=4, fig.path="../figs/",
+                      echo=FALSE, warning=FALSE, message=FALSE)
+```
+
+# Load packages
+
+```{r load-packages, message=FALSE}
+# load packages for current session
+library(tidyverse) 
+library(gridExtra) # or library(patchwork) for arranging figures
+library(MASS) # for fitting distributions to your data
+```
+
+# Chapter 9 Homework
+
+This homework will give you practice at transforming and visualizing data and fitting a distribution to a set of data. Note that much of the code needed to complete this homework can be adapted from the [Coursebook Exercises](https://smogdr.github.io/edar_coursebook/transform.html#ch-9-exercises) in Chapter 9.
+
+When a question asks you to make a plot, remember to set a theme, title, subtitle, labels, colors, etc. It is up to you how to personalize your plots, but put in some effort and make the plotting approach consistent throughout the document. For example, you could use the same theme for all plots.
+
+\newpage
+
+## Question 1
+
+Recreate Figure 9.8 (the three EDA plots based on `salary_ps2$salary`), but show the plots on a log-scale x-axis. Plot the histogram with 30 bins and move the legends so that they don't block the data. Does the data in these plots appear more symmetric about the median? Why or why not?
+
+Answer: I does appear more symetric and normal because the histogram pulls in the outliers.
+
+```{r import-clean-data}
+
+salary_ch9 <- readr::read_csv("salary_ch9.csv")
+
+salary_ps2 <- salary_ch9 %>%
+  dplyr::mutate(salary = salary/1000) %>% #convert to thousands of $
+  dplyr::filter(salary < 500, #censor high outliers
+                salary > 10)  #censor low outliers
+```
+
+```{r plot-log-scale}
+
+box2 <- ggplot(salary_ps2, aes(y = sex, x = salary, fill = sex)) +
+  geom_boxplot(outlier.alpha = 0.2) +
+  scale_x_log10(labels = scales::label_dollar(suffix = "k")) +
+  theme_bw() +
+  labs(title = "Salary by Sex (Boxplot, Log Scale)",
+       x = "Salary (log10 scale)", y = "Sex") +
+  theme(legend.position = "none")
+
+
+hist2 <- ggplot(salary_ps2, aes(x = salary, fill = sex)) +
+  geom_histogram(color = "white", bins = 30, position = "identity", alpha = 0.6) +
+  scale_x_log10(labels = scales::label_dollar(suffix = "k")) +
+  theme_bw() +
+  labs(title = "Salary Distribution (Histogram, Log Scale)",
+       x = "Salary (log10 scale)", y = "Count") +
+  theme(legend.position = "top")
+
+
+cdf2 <- ggplot(salary_ps2, aes(x = salary, color = sex)) +
+  stat_ecdf(size = 1) +
+  scale_x_log10(labels = scales::label_dollar(suffix = "k")) +
+  theme_bw() +
+  labs(title = "Cumulative Distribution of Salary (Log Scale)",
+       x = "Salary (log10 scale)", y = "Quantile") +
+  theme(legend.position = "bottom")
+
+
+grid.arrange(box2, hist2, cdf2, nrow = 2, ncol = 2)
+```
+
+# XL: Good job! Since the legends of the three plots are the same, you can only include one legend. You don't need to emphasize the x axis is a log scale on the axis title, since everyone who sees your figure will realize this by the scale and distribution of your x axis. 
+
+## Question 2
+
+Modify the code that created the `sal_simulate` data frame to create a variable that simulates quantiles from a *cumulative distribution*. Plot these data (instead of a histogram). Hint: instead of `rlnorm()` you will need to use a different log density function that takes a vector of quantiles as input (you will need to specify the quantile vector). Type ?Lognormal into the Console for help.
+
+```{r fig9-9-cdf, include=FALSE}
+
+fit.lnorm <- fitdistr(salary_ps2$salary, densfun = "log-normal")
+
+
+sal_quant <- tibble(
+  p = seq(0.001, 0.999, length.out = length(salary_ps2$salary)),  # probabilities (avoid 0 and 1)
+  q = qlnorm(
+    p,
+    meanlog = fit.lnorm$estimate[[1]],
+    sdlog   = fit.lnorm$estimate[[2]]
+  )
+)
+
+
+ggplot() +
+  stat_ecdf(data = salary_ps2, aes(x = salary, color = "Observed"), size = 1) +
+  geom_line(data = sal_quant, aes(x = q, y = p, color = "Lognormal (theoretical)"), size = 1) +
+  labs(title = "Observed vs. Lognormal Cumulative Distribution of Salary",
+       x = "Salary", y = "Cumulative Probability") +
+  scale_x_continuous(
+    labels = function(x) paste0("$", prettyNum(x/1000, big.mark=","), "k")
+    # , limits = c(0, 500000)  # uncomment only if you truly need limits in dollars
+  ) +
+  scale_color_manual(NULL, values = c("Observed" = "navy", "Lognormal (theoretical)" = "darkorange1")) +
+  theme_bw() +
+  theme(legend.position = "bottom")
+
+```
+
+## Question 3
+
+Mutate the `salary_ps2` data frame to create a new column variable that takes the log of the salary data (call that variable `log.salary`). Then use `fitdistr()` to fit a *normal distribution* to `log.salary`. What are the resultant parameter estimates for the mean and sd? Hint: the output of `fitdistr()` is a list; look in the `estimate` entry for these parameters. How close are these estimates to those calculated in [section 9.6.4](https://smogdr.github.io/edar_coursebook/transform.html#fit-a-log-normal-distribution) of the Coursebook?
+
+```{r fit-nomral}
+
+salary_ps2 <- salary_ps2 %>%
+  mutate(log.salary = log(salary))
+
+
+fit.norm <- fitdistr(salary_ps2$log.salary, "normal")
+
+
+fit.norm$estimate
+```
+
+# XL: Good job!
